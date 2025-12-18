@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Records - CRMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Criminal Record Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+      <a href="map.html">Map</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel records-panel">
+      <div class="bar">
+        <div>
+          <p class="eyebrow">National Database</p>
+          <h2>Crime Reports Registry</h2>
+        </div>
+        <input id="search" placeholder="Search by name, crime, location..." class="search-input">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>FIR #</th>
+              <th>Reporter</th>
+              <th>Suspect</th>
+              <th>Crime Type</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="records"></tbody>
+        </table>
+        <p id="emptyState" class="muted"></p>
+      </div>
+    </section>
+
+    <section class="panel highlights">
+      <header>
+        <p class="eyebrow">Database Management</p>
+        <h2>Records Search & Management Guide</h2>
+      </header>
+      <div class="highlight-grid">
+        <article>
+          <div class="highlight-icon">🔍</div>
+          <h3>Advanced Search</h3>
+          <p>Search instantly by typing any keyword - names, FIR numbers, crime types, or locations. Results filter in real-time as you type.</p>
+        </article>
+        <article>
+          <div class="highlight-icon">✏</div>
+          <h3>Quick Edit Access</h3>
+          <p>Click "Edit" to load case details into the report form for updates. All changes are logged with timestamps and user information.</p>
+        </article>
+        <article>
+          <div class="highlight-icon">🔒</div>
+          <h3>Audit Trail Protection</h3>
+          <p>Every deletion and modification creates an audit log accessible to supervisors. Ensures accountability and data integrity.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

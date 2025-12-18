@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suspects - CRMS</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Suspects-specific styling */
+    .status-badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-at-large {
+      background: rgba(255, 68, 68, 0.2);
+      color: #ff4444;
+      border: 1px solid rgba(255, 68, 68, 0.3);
+    }
+
+    .status-in-custody {
+      background: rgba(76, 175, 80, 0.2);
+      color: #4caf50;
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    .status-under-investigation {
+      background: rgba(255, 152, 0, 0.2);
+      color: #ff9800;
+      border: 1px solid rgba(255, 152, 0, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Criminal Record Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+      <a href="map.html">Map</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <header>
+        <p class="eyebrow">Suspect Database</p>
+        <h2>Manage Suspects</h2>
+        <p class="lede">Track and manage suspect information and criminal records</p>
+      </header>
+
+      <form id="suspectForm">
+        <input type="hidden" id="suspectId">
+        <div class="grid">
+          <div class="form-group">
+            <label for="fullName">Full Name *</label>
+            <input id="fullName" placeholder="Suspect's full name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="alias">Alias / Nickname</label>
+            <input id="alias" placeholder="e.g., Bobby, Tiger">
+          </div>
+
+          <div class="form-group">
+            <label for="age">Age</label>
+            <input id="age" type="number" min="1" max="120" placeholder="Age">
+          </div>
+
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select id="gender">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input id="phone" type="tel" placeholder="03XX-XXXXXXX">
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status *</label>
+            <select id="status" required>
+              <option value="At Large">At Large</option>
+              <option value="In Custody">In Custody</option>
+              <option value="Under Investigation">Under Investigation</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="address">Address</label>
+            <input id="address" placeholder="Complete address">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="identificationMarks">Identification Marks</label>
+            <textarea id="identificationMarks" placeholder="Scars, tattoos, birthmarks, etc." rows="2"></textarea>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="criminalHistory">Criminal History</label>
+            <textarea id="criminalHistory" placeholder="Previous arrests, convictions, etc." rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Save Suspect</button>
+          <button type="button" id="resetBtn">Reset Form</button>
+        </div>
+        <p id="feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="bar">
+        <div>
+          <p class="eyebrow">Suspects Registry</p>
+          <h2>All Suspects</h2>
+        </div>
+        <input id="search" placeholder="Search by name, alias, or status" class="search-input">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Alias</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="suspectsTable"></tbody>
+        </table>
+        <p id="emptyState" class="muted"></p>
+      </div>
+    </section>
+  </main>
+<script>
+    // Suspects Management System with Database Integration
+    const form = document.getElementById('suspectForm');
+    const suspectId = document.getElementById('suspectId');
+    const fullName = document.getElementById('fullName');
+    const alias = document.getElementById('alias');
+    const age = document.getElementById('age');
+    const gender = document.getElementById('gender');
+    const phone = document.getElementById('phone');
+    const address = document.getElementById('address');
+    const identificationMarks = document.getElementById('identificationMarks');
+    const criminalHistory = document.getElementById('criminalHistory');
+    const status = document.getElementById('status');
+    const resetBtn = document.getElementById('resetBtn');
+    const feedback = document.getElementById('feedback');
+    const tableBody = document.getElementById('suspectsTable');
+    const searchInput = document.getElementById('search');
+    const emptyState = document.getElementById('emptyState');
+
+    
+    const CURRENT_HOST = window.location.hostname;
+    const API = `http://${CURRENT_HOST}:5000/api/suspects`;
+   
+
+    let suspects = [];
+
+    const setMessage = (msg, ok = true) => {
+      feedback.textContent = msg;
+      feedback.style.color = ok ? '#4caf50' : '#ff4444';
+      setTimeout(() => feedback.textContent = '', 3000);
+    };
+
+    
+    const loadSuspects = () => {
+      fetch(API)
+        .then(res => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
+        .then(data => {
+          suspects = data.data || data || [];
+          drawTable(suspects);
+        })
+        .catch(err => {
+          console.error('Load error:', err);
+          setMessage('Unable to reach server at ' + API, false);
+        });
+    };
+
+    const getStatusClass = (statusText) => {
+      if (!statusText) return 'status-at-large';
+      const normalized = statusText.toLowerCase().replace(/ /g, '-');
+      return 'status-' + normalized;
+    };
+
+    const drawTable = (data) => {
+      if (!tableBody) return;
+      if (!data || data.length === 0) {
+        tableBody.innerHTML = '';
+        emptyState.textContent = 'No suspects found';
+        return;
+      }
+
+      emptyState.textContent = '';
+      tableBody.innerHTML = data.map(s => `
+        <tr>
+          <td data-label="ID">#${s.id}</td>
+          <td data-label="Name"><strong>${s.full_name || 'N/A'}</strong></td>
+          <td data-label="Alias">${s.alias || 'N/A'}</td>
+          <td data-label="Age">${s.age || 'N/A'}</td>
+          <td data-label="Gender">${s.gender || 'N/A'}</td>
+          <td data-label="Status">
+            <span class="status-badge ${getStatusClass(s.status)}">${s.status || 'At Large'}</span>
+          </td>
+          <td data-label="Actions">
+            <div class="row-actions">
+              <button class="ghost" data-action="view" data-id="${s.id}">View</button>
+              <button class="ghost" data-action="edit" data-id="${s.id}">Edit</button>
+              <button class="danger" data-action="delete" data-id="${s.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (!fullName.value.trim()) {
+        setMessage('Please fill the required field: Full Name', false);
+        return;
+      }
+
+      const payload = {
+        full_name: fullName.value.trim(),
+        alias: alias.value.trim() || null,
+        age: age.value || null,
+        gender: gender.value || null,
+        phone: phone.value.trim() || null,
+        address: address.value.trim() || null,
+        identification_marks: identificationMarks.value.trim() || null,
+        criminal_history: criminalHistory.value.trim() || null,
+        status: status.value || 'At Large'
+      };
+
+      if (suspectId.value) {
+        payload.id = parseInt(suspectId.value);
+      }
+
+      const method = suspectId.value ? 'PUT' : 'POST';
+      setMessage('Saving suspect...', true);
+
+      fetch(API, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        setMessage(data.message || 'Suspect saved successfully', true);
+        form.reset();
+        suspectId.value = '';
+        loadSuspects();
+      })
+      .catch(err => {
+        console.error('Save error:', err);
+        setMessage('Failed to save suspect', false);
+      });
+    });
+
+    // Table button actions - View, Edit, Delete
+    tableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      const { action, id } = btn.dataset;
+      const suspect = suspects.find(s => String(s.id) === String(id));
+
+      if (action === 'view' && suspect) {
+        alert(`Suspect: ${suspect.full_name}\nAlias: ${suspect.alias || 'N/A'}\nStatus: ${suspect.status}`);
+      }
+
+      if (action === 'edit' && suspect) {
+        suspectId.value = suspect.id;
+        fullName.value = suspect.full_name || '';
+        alias.value = suspect.alias || '';
+        age.value = suspect.age || '';
+        gender.value = suspect.gender || '';
+        phone.value = suspect.phone || '';
+        address.value = suspect.address || '';
+        identificationMarks.value = suspect.identification_marks || '';
+        criminalHistory.value = suspect.criminal_history || '';
+        status.value = suspect.status || 'At Large';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      if (action === 'delete') {
+        if (!confirm(`Delete this suspect?`)) return;
+        fetch(API, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: parseInt(id) })
+        })
+        .then(() => loadSuspects())
+        .catch(() => setMessage('Delete failed', false));
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      form.reset();
+      suspectId.value = '';
+      setMessage('');
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      const filtered = suspects.filter(s => 
+        (s.full_name || '').toLowerCase().includes(term) ||
+        (s.alias || '').toLowerCase().includes(term)
+      );
+      drawTable(filtered);
+    });
+
+    loadSuspects();
+</script>

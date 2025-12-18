@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRMS | Crime Categories</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Crime Report Management Suite</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Sign In</a>
+      <a href="map.html">Login</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+             <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <header>
+        <p class="eyebrow">Crime Classification</p>
+        <h2>Manage Crime Categories</h2>
+        <p class="lede">Define crime types, severity levels, and punishment guidelines</p>
+      </header>
+
+      <form id="categoryForm">
+        <input type="hidden" id="categoryId">
+        <div class="grid">
+          <div class="form-group">
+            <label for="categoryName">Category Name *</label>
+            <input id="categoryName" placeholder="e.g., Theft, Assault, Fraud" required>
+          </div>
+
+          <div class="form-group">
+            <label for="severity">Severity Level *</label>
+            <select id="severity" required>
+              <option value="">Select Severity</option>
+              <option value="Minor">Minor</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Serious">Serious</option>
+              <option value="Heinous">Heinous</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Description *</label>
+            <textarea id="description" placeholder="Define what constitutes this crime category" rows="2" required></textarea>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="typicalPunishment">Typical Punishment</label>
+            <textarea id="typicalPunishment" placeholder="Legal penalties as per Pakistan Penal Code" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Save Category</button>
+          <button type="button" id="resetBtn">Reset Form</button>
+        </div>
+        <p id="feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="bar">
+        <div>
+          <p class="eyebrow">Crime Types Registry</p>
+          <h2>All Categories</h2>
+        </div>
+        <input id="search" placeholder="Search categories" class="search-input">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Category Name</th>
+              <th>Severity</th>
+              <th>Description</th>
+              <th>Punishment</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="categoriesTable"></tbody>
+        </table>
+        <p id="emptyState" class="muted"></p>
+      </div>
+    </section>
+
+    <section class="panel stats-section">
+      <header>
+        <p class="eyebrow">Category Statistics</p>
+        <h2>Crime Severity Distribution</h2>
+      </header>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-icon">📊</div>
+          <strong id="statMinor">0</strong>
+          <span>Minor Crimes</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">⚠</div>
+          <strong id="statModerate">0</strong>
+          <span>Moderate Crimes</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">🚨</div>
+          <strong id="statSerious">0</strong>
+          <span>Serious Crimes</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">⛔</div>
+          <strong id="statHeinous">0</strong>
+          <span>Heinous Crimes</span>
+        </div>
+      </div>
+    </section>
+  </main>
+<script>
+    const form = document.getElementById('categoryForm');
+    const categoryId = document.getElementById('categoryId');
+    const categoryName = document.getElementById('categoryName');
+    const severity = document.getElementById('severity');
+    const description = document.getElementById('description');
+    const typicalPunishment = document.getElementById('typicalPunishment');
+    const resetBtn = document.getElementById('resetBtn');
+    const feedback = document.getElementById('feedback');
+    const tableBody = document.getElementById('categoriesTable');
+    const search = document.getElementById('search');
+    const emptyState = document.getElementById('emptyState');
+    const statMinor = document.getElementById('statMinor');
+    const statModerate = document.getElementById('statModerate');
+    const statSerious = document.getElementById('statSerious');
+    const statHeinous = document.getElementById('statHeinous');
+
+    // --- CONNECTION FIX START ---
+    // Ye line automatic mobile ya laptop ka IP detect karegi
+    const CURRENT_HOST = window.location.hostname;
+    const API = `http://${CURRENT_HOST}:5000/api/categories`;
+    // --- CONNECTION FIX END ---
+
+    let categories = [];
+
+    const setMessage = (msg, ok = true) => {
+      if (!feedback) return;
+      feedback.textContent = msg;
+      feedback.style.color = ok ? '#4caf50' : '#ff4444';
+      setTimeout(() => { if(feedback) feedback.textContent = ''; }, 3000);
+    };
+
+    const updateStats = () => {
+      if (!statMinor) return;
+      const minor = categories.filter(c => c.severity === 'Minor').length;
+      const moderate = categories.filter(c => c.severity === 'Moderate').length;
+      const serious = categories.filter(c => c.severity === 'Serious').length;
+      const heinous = categories.filter(c => c.severity === 'Heinous').length;
+      
+      statMinor.textContent = minor;
+      statModerate.textContent = moderate;
+      statSerious.textContent = serious;
+      statHeinous.textContent = heinous;
+    };
+
+    const loadCategories = () => {
+      fetch(API)
+        .then(res => res.json())
+        .then(data => {
+          categories = data.data || [];
+          drawTable();
+          updateStats();
+        })
+        .catch(() => setMessage('Unable to reach server at ' + API, false));
+    };
+
+    const drawTable = () => {
+      if (!tableBody) return;
+      const query = (search.value || '').trim().toLowerCase();
+      const list = categories.filter(c =>
+        `${c.category_name} ${c.severity} ${c.description}`.toLowerCase().includes(query)
+      );
+
+      tableBody.innerHTML = list.map(c => `
+        <tr>
+          <td data-label="ID">#${c.id}</td>
+          <td data-label="Category">${c.category_name}</td>
+          <td data-label="Severity"><span class="tag ${c.severity}">${c.severity}</span></td>
+          <td data-label="Description">${c.description.substring(0, 50)}${c.description.length > 50 ? '...' : ''}</td>
+          <td data-label="Punishment">${(c.typical_punishment || 'Not specified').substring(0, 40)}...</td>
+          <td data-label="Actions">
+            <div class="row-actions">
+              <button class="ghost" data-action="edit" data-id="${c.id}">Edit</button>
+              <button class="danger" data-action="delete" data-id="${c.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      if (emptyState) emptyState.textContent = list.length ? '' : 'No categories found';
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const payload = {
+        id: categoryId.value ? parseInt(categoryId.value) : null,
+        category_name: categoryName.value.trim(),
+        severity: severity.value,
+        description: description.value.trim(),
+        typical_punishment: typicalPunishment.value.trim()
+      };
+
+      const method = categoryId.value ? 'PUT' : 'POST';
+      setMessage('Saving...');
+      
+      fetch(API, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        setMessage(data.message || 'Category saved');
+        form.reset();
+        categoryId.value = '';
+        loadCategories();
+      })
+      .catch(() => setMessage('Save failed', false));
+    });
+
+    tableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      const { action, id } = btn.dataset;
+
+      if (action === 'edit') {
+        const category = categories.find(c => String(c.id) === String(id));
+        if (category) {
+          categoryId.value = category.id;
+          categoryName.value = category.category_name;
+          severity.value = category.severity;
+          description.value = category.description;
+          typicalPunishment.value = category.typical_punishment || '';
+          setMessage('Editing category #' + category.id);
+          window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+      }
+
+      if (action === 'delete') {
+        if (!confirm('Delete this category?')) return;
+
+        setMessage('Deleting...');
+        fetch(API, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: parseInt(id) })
+        })
+        .then(res => res.json())
+        .then(data => {
+          setMessage(data.message || 'Deleted');
+          loadCategories();
+        })
+        .catch(() => setMessage('Delete failed', false));
+      }
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          form.reset();
+          categoryId.value = '';
+          setMessage('');
+        });
+    }
+    
+    if (search) search.addEventListener('input', drawTable);
+
+    // Initial Load
+    loadCategories();
+</script>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Report - CRMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Criminal Record Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+   <a href="map.html">Map</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+      
+      
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <header>
+        <p class="eyebrow">Rapid Intake System</p>
+        <h2>File Crime Report (FIR)</h2>
+        <p class="lede">Complete all mandatory fields to register a new crime report. This information will be permanently recorded in the national database.</p>
+      </header>
+
+      <form id="reportForm">
+        <input type="hidden" id="reportId">
+        <div class="grid">
+          <div class="form-group">
+            <label for="reporter">Reporter / Victim Name *</label>
+            <input id="reporter" placeholder="Full name of complainant" required>
+          </div>
+
+          <div class="form-group">
+            <label for="suspect">Suspect / Accused Name *</label>
+            <input id="suspect" placeholder="Name of accused person" required>
+          </div>
+
+          <div class="form-group">
+            <label for="suspectPhone">Suspect Phone</label>
+            <input id="suspectPhone" placeholder="Contact number (optional)">
+          </div>
+
+          <div class="form-group">
+            <label for="crime">Crime Type *</label>
+            <input id="crime" placeholder="e.g., Theft, Assault, Fraud" required>
+          </div>
+
+          <div class="form-group">
+            <label for="location">Location of Incident *</label>
+            <input id="location" placeholder="Full address where crime occurred" required>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Case Status *</label>
+            <select id="status" required>
+              <option value="Filed">Filed</option>
+              <option value="Investigating">Under Investigation</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="notes">Investigation Notes</label>
+            <textarea id="notes" placeholder="Enter relevant details, evidence, or witness information..." rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Save Report</button>
+          <button type="button" id="resetBtn">Reset Form</button>
+        </div>
+        <p id="feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel highlights">
+      <header>
+        <p class="eyebrow">Best Practices</p>
+        <h2>FIR Filing Guidelines</h2>
+      </header>
+      <div class="highlight-grid">
+        <article>
+          <div class="highlight-icon">✅</div>
+          <h3>Verify Information</h3>
+          <p>Double-check all complainant and suspect details. Ensure phone numbers and addresses are accurate for follow-up investigations.</p>
+        </article>
+        <article>
+          <div class="highlight-icon">⏱</div>
+          <h3>Immediate Updates</h3>
+          <p>Update case status to "Investigating" immediately when teams are deployed. Mark "Closed" only after judicial proceedings.</p>
+        </article>
+        <article>
+          <div class="highlight-icon">📝</div>
+          <h3>Detailed Documentation</h3>
+          <p>Include weapon descriptions, vehicle plates, physical evidence, and witness statements in the notes field for court reference.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

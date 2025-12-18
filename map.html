@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRMS - Police Station Map</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .map-container {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 100px);
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      margin-top: 80px;
+      overflow: hidden;
+    }
+
+    .map-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background: rgba(22, 33, 62, 0.95);
+      padding: 25px;
+      border-radius: 15px;
+      border: 1px solid rgba(220, 20, 60, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      min-width: 300px;
+    }
+
+    .map-controls h3 {
+      color: #ff6b6b;
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group label {
+      display: block;
+      color: #eaeaea;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .control-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid rgba(220, 20, 60, 0.3);
+      background: rgba(15, 12, 41, 0.8);
+      color: #eaeaea;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .control-group select:focus {
+      outline: none;
+      border-color: #dc143c;
+      box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.2);
+    }
+
+    .stats-display {
+      background: rgba(220, 20, 60, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid rgba(220, 20, 60, 0.3);
+      margin-top: 15px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(220, 20, 60, 0.2);
+    }
+
+    .stat-item:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: #b8b8b8;
+      font-size: 0.9rem;
+    }
+
+    .stat-value {
+      color: #ff6b6b;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    #mapCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(22, 33, 62, 0.95);
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid rgba(220, 20, 60, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .legend h4 {
+      color: #ff6b6b;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      color: #eaeaea;
+      font-size: 0.9rem;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #dc143c;
+      box-shadow: 0 0 10px #dc143c, 0 0 20px #dc143c;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .view-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .view-btn {
+      padding: 12px 20px;
+      background: rgba(220, 20, 60, 0.2);
+      border: 1px solid rgba(220, 20, 60, 0.3);
+      color: #ff6b6b;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .view-btn:hover {
+      background: rgba(220, 20, 60, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 12, 41, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 1000;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(220, 20, 60, 0.2);
+      border-top: 4px solid #dc143c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: #ff6b6b;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Crime Report Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+      <a href="map.html">Map</a>
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <div class="map-container">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading 3D Map...</div>
+    </div>
+
+    <div class="map-controls">
+      <h3>🗺️ Map Controls</h3>
+      
+      <div class="control-group">
+        <label for="citySelect">Select City</label>
+        <select id="citySelect">
+          <option value="">Choose a city...</option>
+          <option value="karachi">Karachi</option>
+          <option value="lahore">Lahore</option>
+          <option value="islamabad">Islamabad</option>
+          <option value="rawalpindi">Rawalpindi</option>
+          <option value="faisalabad">Faisalabad</option>
+          <option value="multan">Multan</option>
+          <option value="peshawar">Peshawar</option>
+          <option value="quetta">Quetta</option>
+          <option value="sialkot">Sialkot</option>
+          <option value="gujranwala">Gujranwala</option>
+        </select>
+      </div>
+
+      <div class="stats-display">
+        <div class="stat-item">
+          <span class="stat-label">Total Stations:</span>
+          <span class="stat-value" id="totalStations">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Active Cases:</span>
+          <span class="stat-value" id="activeCases">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Officers:</span>
+          <span class="stat-value" id="totalOfficers">0</span>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="mapCanvas"></canvas>
+
+    <div class="legend">
+      <h4>Legend</h4>
+      <div class="legend-item">
+        <div class="legend-dot"></div>
+        <span>Police Station</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #4caf50; box-shadow: 0 0 10px #4caf50;"></div>
+        <span>City Center</span>
+      </div>
+    </div>
+
+    <div class="view-controls">
+      <button class="view-btn" onclick="resetView()">🔄 Reset View</button>
+      <button class="view-btn" onclick="toggleRotation()">⏸️ Pause</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Pakistan Cities Police Station Data
+    const policeStationsData = {
+      karachi: {
+        center: { lat: 24.8607, lng: 67.0011 },
+        stations: [
+          { name: "Saddar Police Station", lat: 24.8588, lng: 67.0256, cases: 45, officers: 32 },
+          { name: "Clifton Police Station", lat: 24.8138, lng: 67.0308, cases: 38, officers: 28 },
+          { name: "Gulshan Police Station", lat: 24.9208, lng: 67.0987, cases: 52, officers: 35 },
+          { name: "Malir Police Station", lat: 24.8943, lng: 67.2045, cases: 41, officers: 30 },
+          { name: "Korangi Police Station", lat: 24.8466, lng: 67.1265, cases: 48, officers: 33 },
+          { name: "Orangi Police Station", lat: 24.9511, lng: 66.9880, cases: 55, officers: 38 },
+          { name: "Lyari Police Station", lat: 24.8728, lng: 66.9962, cases: 50, officers: 36 },
+          { name: "Nazimabad Police Station", lat: 24.9201, lng: 67.0341, cases: 43, officers: 31 }
+        ]
+      },
+      lahore: {
+        center: { lat: 31.5497, lng: 74.3436 },
+        stations: [
+          { name: "Model Town Police Station", lat: 31.4814, lng: 74.3171, cases: 35, officers: 28 },
+          { name: "Gulberg Police Station", lat: 31.5089, lng: 74.3461, cases: 42, officers: 32 },
+          { name: "Cantt Police Station", lat: 31.5562, lng: 74.3149, cases: 38, officers: 30 },
+          { name: "Iqbal Town Police Station", lat: 31.5081, lng: 74.2951, cases: 40, officers: 29 },
+          { name: "Johar Town Police Station", lat: 31.4693, lng: 74.2731, cases: 36, officers: 27 },
+          { name: "Anarkali Police Station", lat: 31.5656, lng: 74.3141, cases: 44, officers: 33 },
+          { name: "Civil Lines Police Station", lat: 31.5700, lng: 74.3210, cases: 39, officers: 31 }
+        ]
+      },
+      islamabad: {
+        center: { lat: 33.6844, lng: 73.0479 },
+        stations: [
+          { name: "Secretariat Police Station", lat: 33.7176, lng: 73.0593, cases: 28, officers: 25 },
+          { name: "Kohsar Police Station", lat: 33.7077, lng: 73.0588, cases: 25, officers: 22 },
+          { name: "Margalla Police Station", lat: 33.7469, lng: 73.0551, cases: 22, officers: 20 },
+          { name: "Shalimar Police Station", lat: 33.6676, lng: 73.1018, cases: 30, officers: 26 },
+          { name: "Industrial Area Police", lat: 33.6547, lng: 73.0648, cases: 32, officers: 28 },
+          { name: "Bhara Kahu Police Station", lat: 33.7377, lng: 73.1330, cases: 26, officers: 23 }
+        ]
+      },
+      rawalpindi: {
+        center: { lat: 33.5651, lng: 73.0169 },
+        stations: [
+          { name: "Saddar Police Station", lat: 33.5998, lng: 73.0550, cases: 40, officers: 30 },
+          { name: "Cantonment Police", lat: 33.5752, lng: 73.0551, cases: 35, officers: 28 },
+          { name: "Wah Cantt Police", lat: 33.7721, lng: 72.7159, cases: 30, officers: 25 },
+          { name: "Satellite Town Police", lat: 33.5744, lng: 73.0913, cases: 38, officers: 29 },
+          { name: "Pirwadhai Police Station", lat: 33.6236, lng: 73.0797, cases: 42, officers: 32 }
+        ]
+      },
+      faisalabad: {
+        center: { lat: 31.4504, lng: 73.1350 },
+        stations: [
+          { name: "City Police Station", lat: 31.4185, lng: 73.0791, cases: 45, officers: 33 },
+          { name: "Madina Town Police", lat: 31.4036, lng: 73.1127, cases: 40, officers: 30 },
+          { name: "Civil Lines Police", lat: 31.4231, lng: 73.0848, cases: 38, officers: 29 },
+          { name: "Sadar Police Station", lat: 31.4177, lng: 73.1049, cases: 42, officers: 31 },
+          { name: "Jaranwala Police", lat: 31.3337, lng: 73.4189, cases: 35, officers: 27 }
+        ]
+      },
+      multan: {
+        center: { lat: 30.1575, lng: 71.5249 },
+        stations: [
+          { name: "Cantt Police Station", lat: 30.2070, lng: 71.4728, cases: 38, officers: 29 },
+          { name: "City Police Station", lat: 30.1978, lng: 71.4711, cases: 42, officers: 32 },
+          { name: "Saddar Police Station", lat: 30.1874, lng: 71.4847, cases: 40, officers: 30 },
+          { name: "New Multan Police", lat: 30.2335, lng: 71.5045, cases: 36, officers: 28 },
+          { name: "Gulgasht Police Station", lat: 30.1775, lng: 71.4959, cases: 39, officers: 31 }
+        ]
+      },
+      peshawar: {
+        center: { lat: 34.0151, lng: 71.5249 },
+        stations: [
+          { name: "Saddar Police Station", lat: 34.0081, lng: 71.5781, cases: 40, officers: 30 },
+          { name: "University Town Police", lat: 33.9947, lng: 71.4752, cases: 35, officers: 27 },
+          { name: "Hayatabad Police", lat: 33.9673, lng: 71.4222, cases: 38, officers: 29 },
+          { name: "Cantt Police Station", lat: 33.9955, lng: 71.5430, cases: 42, officers: 32 },
+          { name: "Gulbahar Police Station", lat: 34.0242, lng: 71.5926, cases: 37, officers: 28 }
+        ]
+      },
+      quetta: {
+        center: { lat: 30.1798, lng: 66.9750 },
+        stations: [
+          { name: "City Police Station", lat: 30.1835, lng: 67.0011, cases: 35, officers: 28 },
+          { name: "Cantt Police Station", lat: 30.2005, lng: 66.9935, cases: 32, officers: 26 },
+          { name: "Satellite Town Police", lat: 30.2246, lng: 67.0458, cases: 30, officers: 25 },
+          { name: "Kharotabad Police", lat: 30.1394, lng: 66.9642, cases: 38, officers: 29 }
+        ]
+      },
+      sialkot: {
+        center: { lat: 32.4945, lng: 74.5229 },
+        stations: [
+          { name: "City Police Station", lat: 32.4972, lng: 74.5319, cases: 36, officers: 28 },
+          { name: "Cantt Police Station", lat: 32.5059, lng: 74.5287, cases: 32, officers: 26 },
+          { name: "Saddar Police Station", lat: 32.4916, lng: 74.5398, cases: 34, officers: 27 },
+          { name: "Pasrur Police Station", lat: 32.2630, lng: 74.6634, cases: 30, officers: 25 }
+        ]
+      },
+      gujranwala: {
+        center: { lat: 32.1877, lng: 74.1945 },
+        stations: [
+          { name: "City Police Station", lat: 32.1617, lng: 74.1883, cases: 38, officers: 29 },
+          { name: "Cantt Police Station", lat: 32.1431, lng: 74.1709, cases: 35, officers: 27 },
+          { name: "Civil Lines Police", lat: 32.1564, lng: 74.1951, cases: 36, officers: 28 },
+          { name: "Satellite Town Police", lat: 32.1739, lng: 74.1627, cases: 33, officers: 26 }
+        ]
+      }
+    };
+
+    // Three.js Scene Setup
+    let scene, camera, renderer, controls;
+    let policeStationMarkers = [];
+    let currentCity = null;
+    let isRotating = true;
+    let animationId;
+
+    function init() {
+      const canvas = document.getElementById('mapCanvas');
+      const container = canvas.parentElement;
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f0c29);
+      scene.fog = new THREE.Fog(0x0f0c29, 10, 50);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(
+        60,
+        container.offsetWidth / container.offsetHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 15, 25);
+      camera.lookAt(0, 0, 0);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ 
+        canvas: canvas, 
+        antialias: true,
+        alpha: true 
+      });
+      renderer.setSize(container.offsetWidth, container.offsetHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(10, 20, 10);
+      scene.add(directionalLight);
+
+      const pointLight = new THREE.PointLight(0xdc143c, 1, 50);
+      pointLight.position.set(0, 10, 0);
+      scene.add(pointLight);
+
+      // Create base map plane
+      createBaseMap();
+
+      // Handle window resize
+      window.addEventListener('resize', onWindowResize);
+
+      // City selection
+      document.getElementById('citySelect').addEventListener('change', handleCityChange);
+
+      // Hide loading overlay
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }, 1000);
+
+      animate();
+    }
+
+    function createBaseMap() {
+      // Create a stylized ground plane
+      const groundGeometry = new THREE.PlaneGeometry(40, 40, 32, 32);
+      const groundMaterial = new THREE.MeshPhongMaterial({
+        color: 0x1a1a2e,
+        side: THREE.DoubleSide,
+        wireframe: false
+      });
+      
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -0.5;
+      scene.add(ground);
+
+      // Add grid
+      const gridHelper = new THREE.GridHelper(40, 40, 0xdc143c, 0x302b63);
+      gridHelper.position.y = -0.4;
+      scene.add(gridHelper);
+    }
+
+    function handleCityChange(e) {
+      const cityKey = e.target.value;
+      if (!cityKey) return;
+
+      currentCity = cityKey;
+      const cityData = policeStationsData[cityKey];
+
+      // Clear existing markers
+      clearMarkers();
+
+      // Create new markers
+      createCityMarkers(cityData);
+
+      // Update stats
+      updateStats(cityData);
+
+      // Reset camera
+      resetView();
+    }
+
+    function clearMarkers() {
+      policeStationMarkers.forEach(marker => {
+        scene.remove(marker);
+      });
+      policeStationMarkers = [];
+    }
+
+    function createCityMarkers(cityData) {
+      // Create city center marker (green)
+      const centerMarker = createMarker(0, 0, 0x4caf50, 1.2);
+      scene.add(centerMarker);
+      policeStationMarkers.push(centerMarker);
+
+      // Create police station markers (red laser dots)
+      const stations = cityData.stations;
+      const gridSize = 20;
+      
+      stations.forEach((station, index) => {
+        // Convert lat/lng to 3D position (simplified)
+        const angle = (index / stations.length) * Math.PI * 2;
+        const radius = 8 + Math.random() * 4;
+        
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = 0.5 + Math.random() * 0.5;
+
+        const marker = createPoliceStationMarker(x, y, z, station);
+        scene.add(marker);
+        policeStationMarkers.push(marker);
+
+        // Create laser beam effect
+        const beam = createLaserBeam(x, z);
+        scene.add(beam);
+        policeStationMarkers.push(beam);
+      });
+    }
+
+    function createMarker(x, y, color, scale = 1) {
+      const geometry = new THREE.SphereGeometry(0.3 * scale, 16, 16);
+      const material = new THREE.MeshPhongMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.5,
+        shininess: 100
+      });
+      
+      const marker = new THREE.Mesh(geometry, material);
+      marker.position.set(x, y, 0);
+
+      // Add glow effect
+      const glowGeometry = new THREE.SphereGeometry(0.5 * scale, 16, 16);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.3
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      marker.add(glow);
+
+      return marker;
+    }
+
+    function createPoliceStationMarker(x, y, z, stationData) {
+      const group = new THREE.Group();
+
+      // Main marker
+      const geometry = new THREE.SphereGeometry(0.4, 16, 16);
+      const material = new THREE.MeshPhongMaterial({
+        color: 0xdc143c,
+        emissive: 0xdc143c,
+        emissiveIntensity: 0.8,
+        shininess: 100
+      });
+      
+      const marker = new THREE.Mesh(geometry, material);
+      group.add(marker);
+
+      // Pulsing ring
+      const ringGeometry = new THREE.RingGeometry(0.5, 0.7, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff6b6b,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      ring.rotation.x = -Math.PI / 2;
+      group.add(ring);
+
+      group.position.set(x, y, z);
+      group.userData = stationData;
+
+      return group;
+    }
+
+    function createLaserBeam(x, z) {
+      const geometry = new THREE.CylinderGeometry(0.05, 0.05, 20, 8);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xdc143c,
+        transparent: true,
+        opacity: 0.3
+      });
+      
+      const beam = new THREE.Mesh(geometry, material);
+      beam.position.set(x, -10, z);
+      
+      return beam;
+    }
+
+    function updateStats(cityData) {
+      const totalStations = cityData.stations.length;
+      const activeCases = cityData.stations.reduce((sum, s) => sum + s.cases, 0);
+      const totalOfficers = cityData.stations.reduce((sum, s) => sum + s.officers, 0);
+
+      document.getElementById('totalStations').textContent = totalStations;
+      document.getElementById('activeCases').textContent = activeCases;
+      document.getElementById('totalOfficers').textContent = totalOfficers;
+    }
+
+    function animate() {
+      animationId = requestAnimationFrame(animate);
+
+      // Auto-rotate scene
+      if (isRotating && currentCity) {
+        scene.rotation.y += 0.002;
+      }
+
+      // Animate markers
+      policeStationMarkers.forEach((marker, index) => {
+        if (marker.children && marker.children.length > 0) {
+          // Pulse effect
+          const scale = 1 + Math.sin(Date.now() * 0.003 + index) * 0.1;
+          marker.children[0].scale.set(scale, scale, scale);
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    function resetView() {
+      camera.position.set(0, 15, 25);
+      camera.lookAt(0, 0, 0);
+      scene.rotation.y = 0;
+    }
+
+    function toggleRotation() {
+      isRotating = !isRotating;
+      const btn = event.target;
+      btn.textContent = isRotating ? '⏸️ Pause' : '▶️ Play';
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('mapCanvas').parentElement;
+      camera.aspect = container.offsetWidth / container.offsetHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.offsetWidth, container.offsetHeight);
+    }
+
+    // Initialize when page loads
+    window.addEventListener('load', init);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(animationId);
+      renderer.dispose();
+    });
+  </script>
+</body>
+</html>

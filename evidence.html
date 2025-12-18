@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evidence - CRMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Criminal Record Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+      <a href="map.html">Map</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html" class="active">Evidence</a>
+      <a href="categories.html">Categories</a>
+             <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <header>
+        <p class="eyebrow">Evidence Management</p>
+        <h2>Track Physical & Digital Evidence</h2>
+        <p class="lede">Maintain chain of custody for all evidence items</p>
+      </header>
+
+      <form id="evidenceForm">
+        <input type="hidden" id="evidenceId">
+        <div class="grid">
+          <div class="form-group">
+            <label for="evidenceNumber">Evidence Number *</label>
+            <input id="evidenceNumber" placeholder="e.g. EVD-2024-001" required>
+          </div>
+
+          <div class="form-group">
+            <label for="caseNumber">Related FIR Number *</label>
+            <input id="caseNumber" placeholder="e.g. FIR-2024-456" required>
+          </div>
+
+          <div class="form-group">
+            <label for="reportId">Related Report ID (DB ID) *</label>
+            <input id="reportId" type="number" placeholder="Must exist in Reports table" required>
+          </div>
+
+          <div class="form-group">
+            <label for="evidenceType">Evidence Type *</label>
+            <select id="evidenceType" required>
+              <option value="">Select Type</option>
+              <option value="Weapon">Weapon</option>
+              <option value="Document">Document</option>
+              <option value="Electronic">Electronic Device</option>
+              <option value="Biological">Biological Sample</option>
+              <option value="Photograph">Photograph/Video</option>
+              <option value="Drug">Drug/Narcotic</option>
+              <option value="Currency">Currency/Valuables</option>
+              <option value="Vehicle">Vehicle</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="collectedBy">Collected By *</label>
+            <input id="collectedBy" placeholder="Officer name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="collectionDate">Collection Date *</label>
+            <input id="collectionDate" type="date" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="storageLocation">Storage Location / Location Found</label>
+            <input id="storageLocation" placeholder="Evidence room or exact address">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Description *</label>
+            <textarea id="description" placeholder="Detailed description" rows="3" required></textarea>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="chainOfCustody">Chain of Custody Notes</label>
+            <textarea id="chainOfCustody" placeholder="Handling notes" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Save Evidence</button>
+          <button type="button" id="resetBtn">Reset Form</button>
+        </div>
+        <p id="feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="bar">
+        <div>
+          <p class="eyebrow">Evidence Registry</p>
+          <h2>All Evidence Items</h2>
+        </div>
+        <input id="search" placeholder="Search..." class="search-input">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Evidence #</th>
+              <th>Case #</th>
+              <th>Type</th>
+              <th>Collected By</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="evidenceTable"></tbody>
+        </table>
+        <p id="emptyState" class="muted"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('evidenceForm');
+    const feedback = document.getElementById('feedback');
+    const tableBody = document.getElementById('evidenceTable');
+    
+    // IP ADDRESS FOR MOBILE ACCESS
+    const API = 'http://10.49.76.165:5000/api/evidence';
+    let evidenceList = [];
+
+    const setMessage = (msg, ok = true) => {
+      feedback.textContent = msg;
+      feedback.style.color = ok ? '#4caf50' : '#ff4444';
+      setTimeout(() => feedback.textContent = '', 4000);
+    };
+
+    const loadEvidence = () => {
+      fetch(API)
+        .then(res => res.json())
+        .then(data => {
+          evidenceList = data.data || data || [];
+          drawTable();
+        })
+        .catch(() => setMessage('Server Offline (Check 10.49.76.165)', false));
+    };
+
+    const drawTable = () => {
+      const query = (document.getElementById('search').value || '').trim().toLowerCase();
+      const filtered = evidenceList.filter(e =>
+        `${e.evidence_number} ${e.case_number} ${e.evidence_type}`.toLowerCase().includes(query)
+      );
+
+      tableBody.innerHTML = filtered.map(e => `
+        <tr>
+          <td>#${e.id}</td>
+          <td><strong>${e.evidence_number || 'N/A'}</strong></td>
+          <td>${e.case_number || 'N/A'}</td>
+          <td><span class="tag">${e.evidence_type}</span></td>
+          <td>${e.collected_by}</td>
+          <td>${e.collection_date ? e.collection_date.split('T')[0] : 'N/A'}</td>
+          <td>
+            <div class="row-actions">
+              <button class="ghost" onclick="editItem(${e.id})">Edit</button>
+              <button class="danger" onclick="deleteItem(${e.id})">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    };
+
+    
+
+
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const payload = {
+    evidence_number: document.getElementById('evidenceNumber').value.trim(),
+    case_number: document.getElementById('caseNumber').value.trim(),
+    report_id: parseInt(document.getElementById('reportId').value),
+    evidence_type: document.getElementById('evidenceType').value,
+    collected_by: document.getElementById('collectedBy').value.trim(),
+    collection_date: document.getElementById('collectionDate').value,
+    location_found: document.getElementById('storageLocation').value.trim(), // For legacy column
+    storage_location: document.getElementById('storageLocation').value.trim(), // For new column
+    description: document.getElementById('description').value.trim(),
+    chain_of_custody: document.getElementById('chainOfCustody').value.trim()
+  };
+
+  const id = document.getElementById('evidenceId').value;
+  if (id) payload.id = parseInt(id);
+
+  fetch(API, {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.ok ? res.json() : Promise.reject())
+  .then(() => {
+    setMessage('Data Saved Successfully!');
+    form.reset();
+    document.getElementById('evidenceId').value = '';
+    loadEvidence();
+  })
+  .catch(() => setMessage('Save Failed! Check if Report ID exists.', false));
+});
+
+    window.editItem = (id) => {
+      const e = evidenceList.find(x => x.id === id);
+      if(!e) return;
+      document.getElementById('evidenceId').value = e.id;
+      document.getElementById('evidenceNumber').value = e.evidence_number || '';
+      document.getElementById('caseNumber').value = e.case_number || '';
+      document.getElementById('reportId').value = e.report_id || '';
+      document.getElementById('evidenceType').value = e.evidence_type;
+      document.getElementById('collectedBy').value = e.collected_by;
+      document.getElementById('collectionDate').value = e.collection_date ? e.collection_date.split('T')[0] : '';
+      document.getElementById('storageLocation').value = e.location_found || e.storage_location || '';
+      document.getElementById('description').value = e.description;
+      document.getElementById('chainOfCustody').value = e.chain_of_custody || '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteItem = (id) => {
+      if(!confirm("Are you sure?")) return;
+      fetch(API, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id })
+      }).then(() => loadEvidence());
+    };
+
+    document.getElementById('resetBtn').onclick = () => {
+        form.reset();
+        document.getElementById('evidenceId').value = '';
+    };
+
+    document.getElementById('search').oninput = drawTable;
+    loadEvidence();
+  </script>
+</body>
+</html>

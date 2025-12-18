@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Officers - CRMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>CRMS</strong>
+        <small>Criminal Record Management System</small>
+      </div>
+    </div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="index.html">Login</a>
+    <a href="map.html">Map</a>
+      <a href="report.html">Reports</a>
+      <a href="records.html">Records</a>
+      <a href="officers.html">Officers</a>
+      <a href="suspects.html">Suspects</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="categories.html">Categories</a>
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <header>
+        <p class="eyebrow">Personnel Management</p>
+        <h2>Law Enforcement Officers</h2>
+        <p class="lede">Manage officer profiles, ranks, and assignments across all departments</p>
+      </header>
+
+      <form id="officerForm">
+        <input type="hidden" id="officerId">
+        <div class="grid">
+          <div class="form-group">
+            <label for="officerName">Full Name *</label>
+            <input id="officerName" placeholder="Officer's full name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="badgeNumber">Badge Number *</label>
+            <input id="badgeNumber" placeholder="Unique badge ID" required>
+          </div>
+
+          <div class="form-group">
+            <label for="rank">Rank *</label>
+            <select id="rank" required>
+              <option value="">Select Rank</option>
+              <option value="Constable">Constable</option>
+              <option value="Head Constable">Head Constable</option>
+              <option value="ASI">Assistant Sub-Inspector (ASI)</option>
+              <option value="SI">Sub-Inspector (SI)</option>
+              <option value="Inspector">Inspector</option>
+              <option value="DSP">Deputy Superintendent (DSP)</option>
+              <option value="SP">Superintendent (SP)</option>
+              <option value="SSP">Senior Superintendent (SSP)</option>
+              <option value="DIG">Deputy Inspector General (DIG)</option>
+              <option value="IG">Inspector General (IG)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="department">Department *</label>
+            <select id="department" required>
+              <option value="">Select Department</option>
+              <option value="Investigation">Investigation</option>
+              <option value="Patrol">Patrol</option>
+              <option value="Traffic">Traffic</option>
+              <option value="Crime Branch">Crime Branch</option>
+              <option value="CTD">Counter Terrorism (CTD)</option>
+              <option value="Forensics">Forensics</option>
+              <option value="Intelligence">Intelligence</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Contact Number</label>
+            <input id="phone" type="tel" placeholder="03XX-XXXXXXX">
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input id="email" type="email" placeholder="officer@police.gov.pk">
+          </div>
+
+          <div class="form-group">
+            <label for="station">Police Station</label>
+            <input id="station" placeholder="Assigned station/precinct">
+          </div>
+
+          <div class="form-group">
+            <label for="joinDate">Join Date</label>
+            <input id="joinDate" type="date">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Save Officer</button>
+          <button type="button" id="resetBtn">Reset Form</button>
+        </div>
+        <p id="feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="bar">
+        <div>
+          <p class="eyebrow">Personnel Directory</p>
+          <h2>All Officers</h2>
+        </div>
+        <input id="search" placeholder="Search by name, badge, or rank" class="search-input">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Badge #</th>
+              <th>Rank</th>
+              <th>Department</th>
+              <th>Station</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="officersTable"></tbody>
+        </table>
+        <p id="emptyState" class="muted"></p>
+      </div>
+    </section>
+  </main>
+<script>
+    const form = document.getElementById('officerForm');
+    const officerId = document.getElementById('officerId');
+    const officerName = document.getElementById('officerName');
+    const badgeNumber = document.getElementById('badgeNumber');
+    const rank = document.getElementById('rank');
+    const department = document.getElementById('department');
+    const phone = document.getElementById('phone');
+    const email = document.getElementById('email');
+    const station = document.getElementById('station');
+    const joinDate = document.getElementById('joinDate');
+    const resetBtn = document.getElementById('resetBtn');
+    const feedback = document.getElementById('feedback');
+    const tableBody = document.getElementById('officersTable');
+    const search = document.getElementById('search');
+    const emptyState = document.getElementById('emptyState');
+
+    // --- CONNECTION FIX FOR MOBILE ---
+    const CURRENT_HOST = window.location.hostname;
+    const API = `http://${CURRENT_HOST}:5000/api/officers`;
+    // ----------------------------------
+
+    let officers = [];
+
+    const setMessage = (msg, ok = true) => {
+      feedback.textContent = msg;
+      feedback.style.color = ok ? '#4caf50' : '#ff4444';
+      setTimeout(() => feedback.textContent = '', 3000);
+    };
+
+    const loadOfficers = () => {
+      fetch(API)
+        .then(res => res.json())
+        .then(data => {
+          // Flask normally sends { data: [...] }
+          officers = data.data || data || [];
+          drawTable();
+        })
+        .catch(err => {
+          console.error('Load error:', err);
+          setMessage('Unable to reach server at ' + API, false);
+        });
+    };
+
+    const drawTable = () => {
+      const query = (search.value || '').trim().toLowerCase();
+      const filteredList = officers.filter(o =>
+        `${o.full_name || ''} ${o.badge_number || ''} ${o.officer_rank || ''} ${o.department || ''}`.toLowerCase().includes(query)
+      );
+
+      if (filteredList.length === 0) {
+        tableBody.innerHTML = '';
+        emptyState.textContent = query ? 'No matching officers found' : 'No officers registered yet';
+        return;
+      }
+
+      emptyState.textContent = '';
+      tableBody.innerHTML = filteredList.map(o => `
+        <tr>
+          <td data-label="ID">#${o.id}</td>
+          <td data-label="Name"><strong>${o.full_name}</strong></td>
+          <td data-label="Badge #">${o.badge_number}</td>
+          <td data-label="Rank"><span class="tag">${o.officer_rank}</span></td>
+          <td data-label="Department">${o.department}</td>
+          <td data-label="Station">${o.station || 'N/A'}</td>
+          <td data-label="Actions">
+            <div class="row-actions">
+              <button class="ghost" data-action="view" data-id="${o.id}">View</button>
+              <button class="ghost" data-action="edit" data-id="${o.id}">Edit</button>
+              <button class="danger" data-action="delete" data-id="${o.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = {
+        badge_number: badgeNumber.value.trim(),
+        full_name: officerName.value.trim(),
+        officer_rank: rank.value,
+        department: department.value,
+        phone: phone.value.trim() || null,
+        email: email.value.trim() || null,
+        station: station.value.trim() || null,
+        join_date: joinDate.value || null
+      };
+
+      if (officerId.value) payload.id = parseInt(officerId.value);
+      const method = officerId.value ? 'PUT' : 'POST';
+
+      fetch(API, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(() => {
+        setMessage('Officer data synced!');
+        form.reset();
+        officerId.value = '';
+        loadOfficers();
+      })
+      .catch(() => setMessage('Error saving data', false));
+    });
+
+    tableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { action, id } = btn.dataset;
+      const officer = officers.find(o => String(o.id) === String(id));
+
+      if (action === 'delete' && officer) {
+        if (!confirm('Delete this officer?')) return;
+        fetch(API, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: officer.id })
+        }).then(() => loadOfficers());
+      }
+      
+      if (action === 'edit' && officer) {
+          officerId.value = officer.id;
+          officerName.value = officer.full_name;
+          badgeNumber.value = officer.badge_number;
+          rank.value = officer.officer_rank;
+          department.value = officer.department;
+          window.scrollTo(0,0);
+      }
+    });
+
+    search.addEventListener('input', drawTable);
+    loadOfficers();
+</script>
