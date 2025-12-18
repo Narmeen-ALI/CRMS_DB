@@ -36,3 +36,4 @@ Based on the repository files, the system is organized as follows:
 * **Evidence Tracking:** Maintain logs of physical and digital evidence.
 * **Automated PDF Generation:** Generate official case documents using the built-in PDF tool.
 * **Crime Mapping:** Visualize crime data points on a map.
+* **DELETION OF CLOSED CASES**:Automatically deletes those closed cases who's time duration are more than 6 months.
