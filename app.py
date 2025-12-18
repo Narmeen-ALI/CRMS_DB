@@ -21,7 +21,7 @@ DB_CONFIG = {
 STATUS_OPTIONS = ['Filed', 'Investigating', 'Closed']
 
 def auto_cleanup_old_cases():
-    """6 mahine purane 'Closed' reports ko delete karne ka function"""
+ 
     try:
         connection = mysql.connector.connect(**DB_CONFIG)
         cursor = connection.cursor()
