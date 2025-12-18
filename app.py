@@ -5,9 +5,11 @@ from mysql.connector import Error
 import os
 from datetime import datetime
 from generate_pdf import create_pdf_report
+from flask_apscheduler import APScheduler 
 
 app = Flask(__name__)
 CORS(app)
+scheduler = APScheduler() 
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -18,6 +20,31 @@ DB_CONFIG = {
 
 STATUS_OPTIONS = ['Filed', 'Investigating', 'Closed']
 
+def auto_cleanup_old_cases():
+    """6 mahine purane 'Closed' reports ko delete karne ka function"""
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+       
+        query = """
+            DELETE FROM reports 
+            WHERE status = 'Closed' 
+            AND created_at < DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        """
+        cursor.execute(query)
+        connection.commit()
+        print(f"[{datetime.now()}] Cleanup complete: Old closed cases removed.")
+        cursor.close()
+        connection.close()
+    except Exception as e:
+        print(f"Cleanup Error: {e}")
+
+
+scheduler.add_job(id='AutoDeleteJob', func=auto_cleanup_old_cases, trigger='interval', hours=24)
+scheduler.init_app(app)
+scheduler.start()
+# -------------------------------
 def get_db_connection():
     """Create and return a database connection"""
     try:
