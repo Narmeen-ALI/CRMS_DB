@@ -1,63 +1,61 @@
-// --- 1. LIVE SERVER CONFIGURATION ---
-// Ye link aapke PythonAnywhere wale backend se connect karega
 const API_BASE_URL = "https://sadia.pythonanywhere.com/api";
 const API_REPORTS = `${API_BASE_URL}/reports`;
 const AUTH_KEY = "crms-auth";
 
-// --- 2. LOGIN LOGIC ---
+// --- 1. LOGIN LOGIC ---
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const user = document.getElementById('loginUser').value.trim();
         const pass = document.getElementById('loginPass').value.trim();
-        const feedback = document.getElementById('loginFeedback');
-
-        // Demo Credentials Check
+        
         if (user === "command@crms" && pass === "ops@123") {
-            feedback.textContent = "Access Granted. Redirecting...";
-            feedback.style.color = "#4caf50";
             localStorage.setItem(AUTH_KEY, "true");
-            setTimeout(() => { window.location.href = "home.html"; }, 1000);
+            window.location.href = "home.html"; // Seedha Home par bhejo
         } else {
-            feedback.textContent = "Invalid Credentials!";
-            feedback.style.color = "#ff4444";
+            alert("Invalid Credentials!");
         }
     });
 }
 
-// --- 3. LIVE STATS LOGIC (FETCH FROM SERVER) ---
+// --- 2. SECURITY CHECK (Redirect Loop Fixer) ---
+const currentPage = window.location.pathname;
+
+// Agar user Home/Map par hai aur login nahi kiya, toh Login page par bhejo
+if ((currentPage.includes("home.html") || currentPage.includes("map.html")) && !localStorage.getItem(AUTH_KEY)) {
+    window.location.href = "index.html";
+}
+
+// Agar user Login page par hai aur pehle se login hai, toh seedha Home par bhejo
+if (currentPage.includes("index.html") && localStorage.getItem(AUTH_KEY)) {
+    window.location.href = "home.html";
+}
+
+// --- 3. LIVE STATS LOGIC ---
 async function loadStats() {
     const statTotal = document.getElementById('statTotal');
-    if (!statTotal) return; // Sirf login page par chalay ga
+    if (!statTotal) return; 
 
     try {
         const response = await fetch(API_REPORTS);
         const data = await response.json();
         const reports = data.data || data || [];
         
-        // Calculations
-        const total = reports.length;
-        const closed = reports.filter(r => r.status && r.status.toLowerCase() === 'closed').length;
-        const pending = total - closed;
-
-        // Update UI
-        document.getElementById('statTotal').textContent = total;
-        document.getElementById('statClosed').textContent = closed;
-        document.getElementById('statInvest').textContent = pending;
+        document.getElementById('statTotal').textContent = reports.length;
+        document.getElementById('statClosed').textContent = reports.filter(r => r.status?.toLowerCase() === 'closed').length;
+        document.getElementById('statInvest').textContent = reports.length - reports.filter(r => r.status?.toLowerCase() === 'closed').length;
     } catch (error) {
         console.error("Stats Error:", error);
     }
 }
 
 // --- 4. LOGOUT LOGIC ---
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'logoutBtn') {
         localStorage.removeItem(AUTH_KEY);
         window.location.href = "index.html";
-    });
-}
+    }
+});
 
-// Page load hote hi stats update karein
 loadStats();
