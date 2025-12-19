@@ -2,7 +2,7 @@ const API_BASE_URL = "https://sadia.pythonanywhere.com/api";
 const API_REPORTS = `${API_BASE_URL}/reports`;
 const AUTH_KEY = "crms-auth";
 
-// --- 1. LOGIN LOGIC ---
+// --- LOGIN LOGIC ---
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
@@ -12,27 +12,38 @@ if (loginForm) {
         
         if (user === "command@crms" && pass === "ops@123") {
             localStorage.setItem(AUTH_KEY, "true");
-            window.location.href = "home.html"; // Seedha Home par bhejo
+            window.location.href = "home.html"; 
         } else {
-            alert("Invalid Credentials!");
+            alert("Ghalat Credentials! Try again.");
         }
     });
 }
 
-// --- 2. SECURITY CHECK (Redirect Loop Fixer) ---
-const currentPage = window.location.pathname;
+// --- FORM SUBMISSION (Fix for Submit Issue) ---
+const reportForm = document.getElementById('reportForm');
+if (reportForm) {
+    reportForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(reportForm);
+        const data = Object.fromEntries(formData.entries());
 
-// Agar user Home/Map par hai aur login nahi kiya, toh Login page par bhejo
-if ((currentPage.includes("home.html") || currentPage.includes("map.html")) && !localStorage.getItem(AUTH_KEY)) {
-    window.location.href = "index.html";
+        try {
+            const response = await fetch(API_REPORTS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                alert("FIR Successfully Registered!");
+                window.location.href = "home.html";
+            }
+        } catch (error) {
+            alert("Error submitting report. Check connection.");
+        }
+    });
 }
 
-// Agar user Login page par hai aur pehle se login hai, toh seedha Home par bhejo
-if (currentPage.includes("index.html") && localStorage.getItem(AUTH_KEY)) {
-    window.location.href = "home.html";
-}
-
-// --- 3. LIVE STATS LOGIC ---
+// --- LIVE STATS ---
 async function loadStats() {
     const statTotal = document.getElementById('statTotal');
     if (!statTotal) return; 
@@ -46,11 +57,12 @@ async function loadStats() {
         document.getElementById('statClosed').textContent = reports.filter(r => r.status?.toLowerCase() === 'closed').length;
         document.getElementById('statInvest').textContent = reports.length - reports.filter(r => r.status?.toLowerCase() === 'closed').length;
     } catch (error) {
-        console.error("Stats Error:", error);
+        // Fallback agar API slow ho
+        document.getElementById('statTotal').textContent = "0";
     }
 }
 
-// --- 4. LOGOUT LOGIC ---
+// --- LOGOUT ---
 document.addEventListener('click', (e) => {
     if (e.target.id === 'logoutBtn') {
         localStorage.removeItem(AUTH_KEY);
@@ -59,3 +71,31 @@ document.addEventListener('click', (e) => {
 });
 
 loadStats();
+// --- SUSPECTS & EVIDENCE LOADING ---
+async function loadSuspectData() {
+    const suspectTable = document.getElementById('suspectsListData');
+    if (!suspectTable) return;
+
+    try {
+        const response = await fetch(API_REPORTS);
+        const data = await response.json();
+        const reports = data.data || data || [];
+
+        suspectTable.innerHTML = ""; // Clear loading text
+
+        reports.forEach(report => {
+            const row = `
+                <tr>
+                    <td><strong>${report.suspect_name || 'Unknown'}</strong></td>
+                    <td>#${report.id || 'N/A'}</td>
+                    <td>${report.crime_type || 'General'}</td>
+                    <td><span class="status-badge">${report.status || 'Active'}</span></td>
+                    <td><button class="view-btn">View Profile</button></td>
+                </tr>`;
+            suspectTable.innerHTML += row;
+        });
+    } catch (e) {
+        suspectTable.innerHTML = "<tr><td colspan='5'>Error loading suspects.</td></tr>";
+    }
+}
+loadSuspectData();

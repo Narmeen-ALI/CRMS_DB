@@ -1,235 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRMS | Crime Categories</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRMS - Crime Categories</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="brand">
-      <span class="dot"></span>
-      <div>
-        <strong>CRMS</strong>
-        <small>Crime Report Management Suite</small>
-      </div>
-    </div>
-    <nav>
-      <a href="home.html">Home</a>
-      <a href="report.html">Reports</a>
-      <a href="records.html">Records</a>
-      <a href="officers.html">Officers</a>
-      <a href="suspects.html">Suspects</a>
-      <a href="evidence.html">Evidence</a>
-      <a href="categories.html" class="active">Categories</a>
-      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+    <nav class="top-nav">
+        <div class="logo">🔴 CRMS</div>
+        <div class="nav-links">
+            <a href="home.html">🏠 Home</a>
+            <a href="categories.html" class="active">📂 Categories</a>
+            <a href="report.html">📝 Reports</a>
+            <a href="#" id="logoutBtn" class="logout-link">Logout</a>
+        </div>
     </nav>
-  </header>
 
-  <main class="shell">
-    <section class="panel">
-      <header>
-        <p class="eyebrow">Crime Classification</p>
-        <h2>Manage Crime Categories</h2>
-        <p class="lede">Define crime types, severity levels, and punishment guidelines</p>
-      </header>
+    <div class="container">
+        <header class="page-header">
+            <h2>📂 Crime Classification & Categories</h2>
+            <p>Database of all registered crime types across the national registry.</p>
+        </header>
 
-      <form id="categoryForm">
-        <input type="hidden" id="categoryId">
-        <div class="grid">
-          <div class="form-group">
-            <label for="categoryName">Category Name *</label>
-            <input id="categoryName" placeholder="e.g., Theft, Assault, Fraud" required>
-          </div>
-
-          <div class="form-group">
-            <label for="severity">Severity Level *</label>
-            <select id="severity" required>
-              <option value="">Select Severity</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
-            </select>
-          </div>
-
-          <div class="form-group full-width">
-            <label for="description">Description *</label>
-            <textarea id="description" placeholder="Define what constitutes this crime category" rows="2" required></textarea>
-          </div>
-
-          <div class="form-group full-width">
-            <label for="typicalPunishment">Typical Punishment</label>
-            <textarea id="typicalPunishment" placeholder="Legal penalties as per Pakistan Penal Code" rows="2"></textarea>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button type="submit">Save Category</button>
-          <button type="button" id="resetBtn">Reset Form</button>
-        </div>
-        <p id="feedback"></p>
-      </form>
-    </section>
-
-    <section class="panel">
-      <div class="bar">
-        <div>
-          <p class="eyebrow">Crime Types Registry</p>
-          <h2>All Categories</h2>
-        </div>
-        <input id="search" placeholder="Search categories" class="search-input">
-      </div>
-      
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Category Name</th>
-              <th>Severity</th>
-              <th>Description</th>
-              <th>Punishment</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="categoriesTable"></tbody>
-        </table>
-        <p id="emptyState" class="muted"></p>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const form = document.getElementById('categoryForm');
-    const categoryId = document.getElementById('categoryId');
-    const categoryName = document.getElementById('categoryName');
-    const severity = document.getElementById('severity');
-    const description = document.getElementById('description');
-    const typicalPunishment = document.getElementById('typicalPunishment');
-    const feedback = document.getElementById('feedback');
-    const tableBody = document.getElementById('categoriesTable');
-    const searchInput = document.getElementById('search');
-
-    const API = `http://${window.location.hostname}:5000/api/categories`;
-    let categories = [];
-
-    const setMessage = (msg, ok = true) => {
-      feedback.textContent = msg;
-      feedback.style.color = ok ? '#4caf50' : '#ff4444';
-      feedback.style.fontWeight = "bold";
-      setTimeout(() => { if(feedback) feedback.textContent = ''; }, 4000);
-    };
-
-    const isValidName = (name) => /^[a-zA-Z\s]+$/.test(name);
-
-    const loadCategories = () => {
-      fetch(API)
-        .then(res => res.json())
-        .then(data => {
-          categories = data.data || data || [];
-          drawTable();
-        })
-        .catch(() => setMessage('Database connection failed!', false));
-    };
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const nameVal = categoryName.value.trim();
-
-      if (!isValidName(nameVal)) {
-        return setMessage('Error: Only alphabets allowed in Name', false);
-      }
-
-      const payload = {
-        category_name: nameVal,
-        severity: severity.value, // Match: Low, Medium, High, Critical
-        description: description.value.trim(),
-        typical_punishment: typicalPunishment.value.trim()
-      };
-
-      // Edit mode: ID tabhi bhejni hai jab edit ho raha ho
-      if (categoryId.value) {
-        payload.id = parseInt(categoryId.value);
-      }
-
-      const method = categoryId.value ? 'PUT' : 'POST';
-      setMessage('Saving...');
-
-      fetch(API, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(async res => {
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.message || 'Save failed');
-        return data;
-      })
-      .then(data => {
-        setMessage('Category saved successfully!', true);
-        form.reset();
-        categoryId.value = '';
-        loadCategories();
-      })
-      .catch(err => setMessage('Error: ' + err.message, false));
-    });
-
-    const drawTable = () => {
-      const query = (searchInput.value || '').toLowerCase();
-      const list = categories.filter(c => 
-        c.category_name.toLowerCase().includes(query) || 
-        c.severity.toLowerCase().includes(query)
-      );
-
-      tableBody.innerHTML = list.map(c => `
-        <tr>
-          <td>#${c.id}</td>
-          <td><strong>${c.category_name}</strong></td>
-          <td><span class="tag ${c.severity}">${c.severity}</span></td>
-          <td>${c.description.substring(0, 40)}...</td>
-          <td>${c.typical_punishment || 'N/A'}</td>
-          <td>
-            <div class="row-actions">
-              <button class="ghost" onclick="editCategory(${c.id})">Edit</button>
-              <button class="danger" onclick="deleteCategory(${c.id})">Delete</button>
+        <div class="category-grid">
+            <div class="cat-card">
+                <div class="icon">🏠</div>
+                <h3>Property Crimes</h3>
+                <p>Theft, Burglary, Robbery, and Arson cases.</p>
+                <span class="count-badge">Total: 124</span>
             </div>
-          </td>
-        </tr>
-      `).join('');
-    };
+            <div class="cat-card">
+                <div class="icon">⚠️</div>
+                <h3>Violent Crimes</h3>
+                <p>Assault, Homicide, and Domestic Violence.</p>
+                <span class="count-badge">Total: 89</span>
+            </div>
+            <div class="cat-card">
+                <div class="icon">💻</div>
+                <h3>Cyber Crimes</h3>
+                <p>Identity Theft, Hacking, and Online Fraud.</p>
+                <span class="count-badge">Total: 45</span>
+            </div>
+            <div class="cat-card">
+                <div class="icon">💊</div>
+                <h3>Narcotics</h3>
+                <p>Drug distribution and illegal possession.</p>
+                <span class="count-badge">Total: 67</span>
+            </div>
+        </div>
+    </div>
 
-    window.editCategory = (id) => {
-      const cat = categories.find(c => c.id === id);
-      if(cat) {
-        categoryId.value = cat.id;
-        categoryName.value = cat.category_name;
-        severity.value = cat.severity;
-        description.value = cat.description;
-        typicalPunishment.value = cat.typical_punishment || '';
-        window.scrollTo({top: 0, behavior: 'smooth'});
-      }
-    };
-
-    window.deleteCategory = (id) => {
-      if(!confirm('Delete this category?')) return;
-      fetch(API, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id })
-      })
-      .then(() => loadCategories())
-      .catch(() => setMessage('Delete failed', false));
-    };
-
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('crms-auth');
-      window.location.href = 'index.html';
-    });
-
-    searchInput.addEventListener('input', drawTable);
-    loadCategories();
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
