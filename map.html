@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRMS | Tactical Map</title>
-  <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
     body { margin: 0; background: #050510; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
@@ -16,20 +15,7 @@
       background: radial-gradient(circle at center, #1a1a3a 0%, #050510 100%);
     }
 
-    .station-label {
-      position: absolute;
-      background: rgba(220, 20, 60, 0.2);
-      backdrop-filter: blur(10px);
-      border-left: 3px solid #dc143c;
-      padding: 8px 15px;
-      color: white;
-      font-size: 12px;
-      pointer-events: none;
-      border-radius: 0 5px 5px 0;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      display: none;
-    }
-
+    /* --- DESKTOP CONTROLS --- */
     .map-controls {
       position: absolute;
       top: 100px;
@@ -40,7 +26,66 @@
       border-radius: 4px;
       border: 1px solid rgba(220, 20, 60, 0.5);
       box-shadow: 0 0 30px rgba(220, 20, 60, 0.2);
-      clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%); /* Futuristic Cut */
+      width: 300px;
+      clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);
+      transition: all 0.4s ease;
+    }
+
+    /* Back Button Style */
+    #backBtn {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      z-index: 101;
+      background: rgba(220, 20, 60, 0.2);
+      color: #fff;
+      border: 1px solid #dc143c;
+      padding: 10px 20px;
+      cursor: pointer;
+      display: none; /* Initially Hidden */
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* ==========================================
+       MEDIA QUERIES (Mobile & Tablet Logic)
+       ========================================== */
+    
+    /* For Tablets and Mobile */
+    @media (max-width: 768px) {
+      .map-controls {
+        top: auto;
+        bottom: 0; /* Sticky to bottom on mobile */
+        left: 0;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 20px;
+        clip-path: none; /* Mobile par simple rectangle acha lagta hai */
+        border-radius: 20px 20px 0 0;
+        border-bottom: none;
+      }
+
+      h3 { font-size: 1.1rem; margin-bottom: 10px; }
+
+      .control-group label { font-size: 12px; }
+
+      #backBtn {
+        top: 20px;
+        right: 20px;
+        padding: 8px 15px;
+        font-size: 12px;
+      }
+    }
+
+    /* For Small Screens (Landscape or small phones) */
+    @media (max-height: 500px) {
+      .map-controls {
+        width: 200px;
+        top: 20px;
+        bottom: auto;
+        padding: 10px;
+      }
+      .stats-display { display: none; } /* Choti height par stats hide krdo */
     }
 
     .control-group select {
@@ -50,38 +95,27 @@
       padding: 10px;
       width: 100%;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      margin-top: 5px;
     }
 
-    /* HUD Elements */
     .scanner-line {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 2px;
+      top: 0; left: 0; width: 100%; height: 2px;
       background: rgba(220, 20, 60, 0.3);
       box-shadow: 0 0 15px #dc143c;
       animation: scan 4s linear infinite;
     }
 
-    @keyframes scan {
-      0% { top: 0; }
-      100% { top: 100%; }
-    }
-
-    .stats-display { border-top: 1px solid #dc143c; margin-top: 15px; }
-    .stat-value { color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
+    @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+    .stats-display { border-top: 1px solid #dc143c; margin-top: 15px; padding-top: 10px; }
+    .stat-value { color: #00f2ff; float: right; }
   </style>
 </head>
 <body>
 
-<header class="site-header">
-    </header>
-
 <div class="map-container">
     <div class="scanner-line"></div>
-    <div id="stationInfo" class="station-label"></div>
+    <button id="backBtn" onclick="goBack()">◀ EXIT</button>
 
     <div class="map-controls">
       <h3><span style="color:#dc143c">⚡</span> TACTICAL OVERLAY</h3>
@@ -97,12 +131,10 @@
 
       <div class="stats-display">
         <div class="stat-item">
-          <span>Active Precincts:</span>
-          <span class="stat-value" id="totalStations">0</span>
+          Active Precincts: <span class="stat-value" id="totalStations">0</span>
         </div>
-        <div class="stat-item">
-          <span>Threat Level:</span>
-          <span class="stat-value" id="threatLevel">STABLE</span>
+        <div class="stat-item" style="margin-top:5px">
+          Threat Level: <span class="stat-value" id="threatLevel">STABLE</span>
         </div>
       </div>
     </div>
@@ -112,10 +144,11 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    // --- SCENE SETUP ---
     let scene, camera, renderer, globe, particles;
+    const markers = [];
     const canvas = document.getElementById('mapCanvas');
-    const stationLabel = document.getElementById('stationInfo');
+    const backBtn = document.getElementById('backBtn');
+    const citySelect = document.getElementById('citySelect');
 
     function init() {
         scene = new THREE.Scene();
@@ -124,107 +157,74 @@
 
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // 1. Futuristic Grid Floor
+        // Grid
         const grid = new THREE.GridHelper(100, 50, 0xdc143c, 0x111122);
         grid.position.y = -10;
         scene.add(grid);
 
-        // 2. Floating Particle Atmosphere
+        // Atmosphere
         const pGeometry = new THREE.BufferGeometry();
-        const pCount = 2000;
         const coords = [];
-        for(let i=0; i<pCount; i++) {
-            coords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
-        }
+        for(let i=0; i<2000; i++) coords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
         pGeometry.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
-        const pMaterial = new THREE.PointsMaterial({ color: 0xdc143c, size: 0.1, transparent: true, opacity: 0.5 });
-        particles = new THREE.Points(pGeometry, pMaterial);
+        particles = new THREE.Points(pGeometry, new THREE.PointsMaterial({ color: 0xdc143c, size: 0.1 }));
         scene.add(particles);
 
-        // 3. Central Holographic Hub
-        const hubGeom = new THREE.IcosahedronGeometry(5, 1);
-        const hubMat = new THREE.MeshBasicMaterial({ color: 0xdc143c, wireframe: true, transparent: true, opacity: 0.2 });
-        globe = new THREE.Mesh(hubGeom, hubMat);
+        globe = new THREE.Mesh(new THREE.IcosahedronGeometry(5, 1), new THREE.MeshBasicMaterial({ color: 0xdc143c, wireframe: true, transparent: true, opacity: 0.2 }));
         scene.add(globe);
 
-        addLights();
         animate();
     }
 
-    function addLights() {
-        const light = new THREE.PointLight(0xdc143c, 2, 100);
-        light.position.set(10, 10, 10);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 2));
-    }
-
-    // --- INTERACTIVE MARKERS ---
-    const markers = [];
-    function createTacticalMarker(data, index) {
-        const group = new THREE.Group();
-        
-        // The Floating Crystal
-        const geom = new THREE.OctahedronGeometry(0.8);
-        const mat = new THREE.MeshPhongMaterial({ 
-            color: 0x00f2ff, 
-            emissive: 0x00f2ff, 
-            transparent: true, 
-            opacity: 0.8,
-            flatShading: true 
-        });
-        const mesh = new THREE.Mesh(geom, mat);
-        
-        // Floating animation
-        gsap.to(mesh.position, { y: 1, duration: 1.5 + Math.random(), repeat: -1, yoyo: true, ease: "sine.inOut" });
-        gsap.to(mesh.rotation, { y: Math.PI, duration: 3, repeat: -1, ease: "none" });
-
-        // Radar Circle
-        const ringGeom = new THREE.RingGeometry(1.2, 1.4, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0xdc143c, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-        const ring = new THREE.Mesh(ringGeom, ringMat);
-        ring.rotation.x = Math.PI/2;
-
-        group.add(mesh, ring);
-        
-        // Position on grid
-        const angle = (index / 8) * Math.PI * 2;
-        group.position.set(Math.cos(angle)*15, -9, Math.sin(angle)*15);
-        
-        group.userData = data;
-        scene.add(group);
-        markers.push(group);
-    }
-
-    // --- SELECTION LOGIC ---
-    document.getElementById('citySelect').addEventListener('change', (e) => {
+    citySelect.addEventListener('change', (e) => {
         const city = e.target.value;
         if(!city) return;
-
-        // Clear old
+        
+        backBtn.style.display = "block"; // Show exit button
         markers.forEach(m => scene.remove(m));
         markers.length = 0;
 
         document.getElementById('threatLevel').textContent = city === 'karachi' ? 'HIGH' : 'ELEVATED';
-        document.getElementById('threatLevel').style.color = city === 'karachi' ? '#ff0000' : '#ffaa00';
-
-        for(let i=0; i<6; i++) {
-            createTacticalMarker({ name: `STATION-ALPHA-${i+1}`, cases: Math.floor(Math.random()*50) }, i);
-        }
         document.getElementById('totalStations').textContent = "6 UNITS";
 
-        gsap.to(camera.position, { z: 45, y: 20, duration: 1.5, ease: "power2.out" });
+        for(let i=0; i<6; i++) {
+            const group = new THREE.Group();
+            const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x00f2ff }));
+            const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.4, 32), new THREE.MeshBasicMaterial({ color: 0xdc143c, side: THREE.DoubleSide }));
+            ring.rotation.x = Math.PI/2;
+            group.add(mesh, ring);
+            const angle = (i / 6) * Math.PI * 2;
+            group.position.set(Math.cos(angle)*15, -9, Math.sin(angle)*15);
+            scene.add(group);
+            markers.push(group);
+        }
+        gsap.to(camera.position, { z: 45, y: 20, duration: 1.5 });
+    });
+
+    // BACK FUNCTION
+    window.goBack = () => {
+        citySelect.value = "";
+        backBtn.style.display = "none";
+        markers.forEach(m => scene.remove(m));
+        document.getElementById('threatLevel').textContent = "STABLE";
+        document.getElementById('totalStations').textContent = "0";
+        gsap.to(camera.position, { x: 0, y: 0, z: 30, duration: 1.5 });
+    };
+
+    // WINDOW RESIZE (Critical for Mobile)
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
     function animate() {
         requestAnimationFrame(animate);
         globe.rotation.y += 0.005;
-        particles.rotation.y += 0.001;
-      
         camera.position.x += (mouseX - camera.position.x) * 0.05;
         camera.lookAt(0,0,0);
-        
         renderer.render(scene, camera);
     }
 
