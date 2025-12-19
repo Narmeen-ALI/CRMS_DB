@@ -207,7 +207,6 @@ def create_pdf_report(report_data, evidence_list=None, suspects_list=None, offic
     footer = Paragraph(footer_text, normal_style)
     elements.append(footer)
     
-    # Build PDF
     pdf.build(elements)
     
     print(f" Enhanced PDF Generated: {filename}")

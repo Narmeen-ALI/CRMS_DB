@@ -17,15 +17,13 @@
     </div>
     <nav>
       <a href="home.html">Home</a>
-      <a href="index.html">Sign In</a>
-      <a href="map.html">Login</a>
       <a href="report.html">Reports</a>
       <a href="records.html">Records</a>
       <a href="officers.html">Officers</a>
       <a href="suspects.html">Suspects</a>
       <a href="evidence.html">Evidence</a>
-      <a href="categories.html">Categories</a>
-             <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
+      <a href="categories.html" class="active">Categories</a>
+      <a href="#" id="logoutBtn" style="color: #ff4444; font-weight: bold; margin-left: 15px;">Logout</a>
     </nav>
   </header>
 
@@ -49,10 +47,10 @@
             <label for="severity">Severity Level *</label>
             <select id="severity" required>
               <option value="">Select Severity</option>
-              <option value="Minor">Minor</option>
-              <option value="Moderate">Moderate</option>
-              <option value="Serious">Serious</option>
-              <option value="Heinous">Heinous</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
             </select>
           </div>
 
@@ -101,194 +99,137 @@
         <p id="emptyState" class="muted"></p>
       </div>
     </section>
-
-    <section class="panel stats-section">
-      <header>
-        <p class="eyebrow">Category Statistics</p>
-        <h2>Crime Severity Distribution</h2>
-      </header>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-icon">📊</div>
-          <strong id="statMinor">0</strong>
-          <span>Minor Crimes</span>
-        </div>
-        <div class="stat-box">
-          <div class="stat-icon">⚠</div>
-          <strong id="statModerate">0</strong>
-          <span>Moderate Crimes</span>
-        </div>
-        <div class="stat-box">
-          <div class="stat-icon">🚨</div>
-          <strong id="statSerious">0</strong>
-          <span>Serious Crimes</span>
-        </div>
-        <div class="stat-box">
-          <div class="stat-icon">⛔</div>
-          <strong id="statHeinous">0</strong>
-          <span>Heinous Crimes</span>
-        </div>
-      </div>
-    </section>
   </main>
-<script>
+
+  <script>
     const form = document.getElementById('categoryForm');
     const categoryId = document.getElementById('categoryId');
     const categoryName = document.getElementById('categoryName');
     const severity = document.getElementById('severity');
     const description = document.getElementById('description');
     const typicalPunishment = document.getElementById('typicalPunishment');
-    const resetBtn = document.getElementById('resetBtn');
     const feedback = document.getElementById('feedback');
     const tableBody = document.getElementById('categoriesTable');
-    const search = document.getElementById('search');
-    const emptyState = document.getElementById('emptyState');
-    const statMinor = document.getElementById('statMinor');
-    const statModerate = document.getElementById('statModerate');
-    const statSerious = document.getElementById('statSerious');
-    const statHeinous = document.getElementById('statHeinous');
+    const searchInput = document.getElementById('search');
 
-    // --- CONNECTION FIX START ---
-    // Ye line automatic mobile ya laptop ka IP detect karegi
-    const CURRENT_HOST = window.location.hostname;
-    const API = `http://${CURRENT_HOST}:5000/api/categories`;
-    // --- CONNECTION FIX END ---
-
+    const API = `http://${window.location.hostname}:5000/api/categories`;
     let categories = [];
 
     const setMessage = (msg, ok = true) => {
-      if (!feedback) return;
       feedback.textContent = msg;
       feedback.style.color = ok ? '#4caf50' : '#ff4444';
-      setTimeout(() => { if(feedback) feedback.textContent = ''; }, 3000);
+      feedback.style.fontWeight = "bold";
+      setTimeout(() => { if(feedback) feedback.textContent = ''; }, 4000);
     };
 
-    const updateStats = () => {
-      if (!statMinor) return;
-      const minor = categories.filter(c => c.severity === 'Minor').length;
-      const moderate = categories.filter(c => c.severity === 'Moderate').length;
-      const serious = categories.filter(c => c.severity === 'Serious').length;
-      const heinous = categories.filter(c => c.severity === 'Heinous').length;
-      
-      statMinor.textContent = minor;
-      statModerate.textContent = moderate;
-      statSerious.textContent = serious;
-      statHeinous.textContent = heinous;
-    };
+    const isValidName = (name) => /^[a-zA-Z\s]+$/.test(name);
 
     const loadCategories = () => {
       fetch(API)
         .then(res => res.json())
         .then(data => {
-          categories = data.data || [];
+          categories = data.data || data || [];
           drawTable();
-          updateStats();
         })
-        .catch(() => setMessage('Unable to reach server at ' + API, false));
-    };
-
-    const drawTable = () => {
-      if (!tableBody) return;
-      const query = (search.value || '').trim().toLowerCase();
-      const list = categories.filter(c =>
-        `${c.category_name} ${c.severity} ${c.description}`.toLowerCase().includes(query)
-      );
-
-      tableBody.innerHTML = list.map(c => `
-        <tr>
-          <td data-label="ID">#${c.id}</td>
-          <td data-label="Category">${c.category_name}</td>
-          <td data-label="Severity"><span class="tag ${c.severity}">${c.severity}</span></td>
-          <td data-label="Description">${c.description.substring(0, 50)}${c.description.length > 50 ? '...' : ''}</td>
-          <td data-label="Punishment">${(c.typical_punishment || 'Not specified').substring(0, 40)}...</td>
-          <td data-label="Actions">
-            <div class="row-actions">
-              <button class="ghost" data-action="edit" data-id="${c.id}">Edit</button>
-              <button class="danger" data-action="delete" data-id="${c.id}">Delete</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-
-      if (emptyState) emptyState.textContent = list.length ? '' : 'No categories found';
+        .catch(() => setMessage('Database connection failed!', false));
     };
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      const nameVal = categoryName.value.trim();
+
+      if (!isValidName(nameVal)) {
+        return setMessage('Error: Only alphabets allowed in Name', false);
+      }
 
       const payload = {
-        id: categoryId.value ? parseInt(categoryId.value) : null,
-        category_name: categoryName.value.trim(),
-        severity: severity.value,
+        category_name: nameVal,
+        severity: severity.value, // Match: Low, Medium, High, Critical
         description: description.value.trim(),
         typical_punishment: typicalPunishment.value.trim()
       };
 
+      // Edit mode: ID tabhi bhejni hai jab edit ho raha ho
+      if (categoryId.value) {
+        payload.id = parseInt(categoryId.value);
+      }
+
       const method = categoryId.value ? 'PUT' : 'POST';
       setMessage('Saving...');
-      
+
       fetch(API, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(res => res.json())
+      .then(async res => {
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || 'Save failed');
+        return data;
+      })
       .then(data => {
-        setMessage(data.message || 'Category saved');
+        setMessage('Category saved successfully!', true);
         form.reset();
         categoryId.value = '';
         loadCategories();
       })
-      .catch(() => setMessage('Save failed', false));
+      .catch(err => setMessage('Error: ' + err.message, false));
     });
 
-    tableBody.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
+    const drawTable = () => {
+      const query = (searchInput.value || '').toLowerCase();
+      const list = categories.filter(c => 
+        c.category_name.toLowerCase().includes(query) || 
+        c.severity.toLowerCase().includes(query)
+      );
 
-      const { action, id } = btn.dataset;
+      tableBody.innerHTML = list.map(c => `
+        <tr>
+          <td>#${c.id}</td>
+          <td><strong>${c.category_name}</strong></td>
+          <td><span class="tag ${c.severity}">${c.severity}</span></td>
+          <td>${c.description.substring(0, 40)}...</td>
+          <td>${c.typical_punishment || 'N/A'}</td>
+          <td>
+            <div class="row-actions">
+              <button class="ghost" onclick="editCategory(${c.id})">Edit</button>
+              <button class="danger" onclick="deleteCategory(${c.id})">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    };
 
-      if (action === 'edit') {
-        const category = categories.find(c => String(c.id) === String(id));
-        if (category) {
-          categoryId.value = category.id;
-          categoryName.value = category.category_name;
-          severity.value = category.severity;
-          description.value = category.description;
-          typicalPunishment.value = category.typical_punishment || '';
-          setMessage('Editing category #' + category.id);
-          window.scrollTo({top: 0, behavior: 'smooth'});
-        }
+    window.editCategory = (id) => {
+      const cat = categories.find(c => c.id === id);
+      if(cat) {
+        categoryId.value = cat.id;
+        categoryName.value = cat.category_name;
+        severity.value = cat.severity;
+        description.value = cat.description;
+        typicalPunishment.value = cat.typical_punishment || '';
+        window.scrollTo({top: 0, behavior: 'smooth'});
       }
+    };
 
-      if (action === 'delete') {
-        if (!confirm('Delete this category?')) return;
+    window.deleteCategory = (id) => {
+      if(!confirm('Delete this category?')) return;
+      fetch(API, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+      })
+      .then(() => loadCategories())
+      .catch(() => setMessage('Delete failed', false));
+    };
 
-        setMessage('Deleting...');
-        fetch(API, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: parseInt(id) })
-        })
-        .then(res => res.json())
-        .then(data => {
-          setMessage(data.message || 'Deleted');
-          loadCategories();
-        })
-        .catch(() => setMessage('Delete failed', false));
-      }
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('crms-auth');
+      window.location.href = 'index.html';
     });
 
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-          form.reset();
-          categoryId.value = '';
-          setMessage('');
-        });
-    }
-    
-    if (search) search.addEventListener('input', drawTable);
-
-    // Initial Load
+    searchInput.addEventListener('input', drawTable);
     loadCategories();
-</script>
+  </script>
+</body>
+</html>

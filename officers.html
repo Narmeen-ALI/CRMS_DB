@@ -261,13 +261,37 @@
       }
       
       if (action === 'edit' && officer) {
-          officerId.value = officer.id;
-          officerName.value = officer.full_name;
-          badgeNumber.value = officer.badge_number;
-          rank.value = officer.officer_rank;
-          department.value = officer.department;
-          window.scrollTo(0,0);
-      }
+    officerId.value = officer.id;
+    officerName.value = officer.full_name;
+    badgeNumber.value = officer.badge_number;
+    rank.value = officer.officer_rank;
+    department.value = officer.department;
+    
+    // --- YE LINES ADD KI HAIN ---
+    station.value = officer.station || ''; // Ab station edit mein nazar aayega
+    phone.value = officer.phone || '';
+    email.value = officer.email || '';
+    joinDate.value = officer.join_date || ''; 
+    // ----------------------------
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Form par smooth scroll karega
+}
+if (action === 'view' && officer) {
+    // Ek simple alert ya popup mein officer ki details dikhane ke liye
+    alert(`
+        OFFICE DETAILS
+        ----------------------
+        ID: #${officer.id}
+        Name: ${officer.full_name}
+        Badge: ${officer.badge_number}
+        Rank: ${officer.officer_rank}
+        Department: ${officer.department}
+        Station: ${officer.station || 'Not Assigned'}
+        Contact: ${officer.phone || 'N/A'}
+        Email: ${officer.email || 'N/A'}
+        Joined: ${officer.join_date || 'N/A'}
+    `);
+}
     });
 
     search.addEventListener('input', drawTable);

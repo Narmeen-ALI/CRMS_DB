@@ -419,7 +419,7 @@ def evidence_api():
         elif request.method == 'POST':
             body = request.get_json()
             cursor = db.cursor()
-            # UPDATED: Added evidence_number, case_number, storage_location, chain_of_custody
+          
             query = """
                 INSERT INTO evidence (report_id, evidence_type, description, collected_by, 
                                     collection_date, location_found, evidence_number, 
@@ -440,7 +440,7 @@ def evidence_api():
         elif request.method == 'PUT':
             body = request.get_json()
             cursor = db.cursor()
-            # UPDATED: Added all new columns to UPDATE query
+           
             query = """
                 UPDATE evidence 
                 SET report_id=%s, evidence_type=%s, description=%s, 

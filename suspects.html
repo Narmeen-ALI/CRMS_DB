@@ -161,70 +161,86 @@
     </section>
   </main>
 <script>
-    // Suspects Management System with Database Integration
-    const form = document.getElementById('suspectForm');
-    const suspectId = document.getElementById('suspectId');
-    const fullName = document.getElementById('fullName');
-    const alias = document.getElementById('alias');
-    const age = document.getElementById('age');
-    const gender = document.getElementById('gender');
-    const phone = document.getElementById('phone');
-    const address = document.getElementById('address');
-    const identificationMarks = document.getElementById('identificationMarks');
-    const criminalHistory = document.getElementById('criminalHistory');
-    const status = document.getElementById('status');
-    const resetBtn = document.getElementById('resetBtn');
-    const feedback = document.getElementById('feedback');
-    const tableBody = document.getElementById('suspectsTable');
-    const searchInput = document.getElementById('search');
-    const emptyState = document.getElementById('emptyState');
+   // Suspects Management System with Database Integration
+const form = document.getElementById('suspectForm');
+const suspectId = document.getElementById('suspectId');
+const fullName = document.getElementById('fullName');
+const alias = document.getElementById('alias');
+const age = document.getElementById('age');
+const gender = document.getElementById('gender');
+const phone = document.getElementById('phone');
+const address = document.getElementById('address');
+const identificationMarks = document.getElementById('identificationMarks');
+const criminalHistory = document.getElementById('criminalHistory');
+const status = document.getElementById('status');
+const resetBtn = document.getElementById('resetBtn');
+const feedback = document.getElementById('feedback');
+const tableBody = document.getElementById('suspectsTable');
+const searchInput = document.getElementById('search');
+const emptyState = document.getElementById('emptyState');
 
-    
-    const CURRENT_HOST = window.location.hostname;
-    const API = `http://${CURRENT_HOST}:5000/api/suspects`;
-   
+const CURRENT_HOST = window.location.hostname;
+const API = `http://${CURRENT_HOST}:5000/api/suspects`;
+const AUTH_KEY = "crms-auth"; // Login state check karne ke liye
 
-    let suspects = [];
+let suspects = [];
 
-    const setMessage = (msg, ok = true) => {
-      feedback.textContent = msg;
-      feedback.style.color = ok ? '#4caf50' : '#ff4444';
-      setTimeout(() => feedback.textContent = '', 3000);
-    };
+// ========================================
+// 🔐 AUTH CHECK (Home pe login rehne ke liye)
+// ========================================
+const isAuthed = () => localStorage.getItem(AUTH_KEY) === "true";
 
-    
-    const loadSuspects = () => {
-      fetch(API)
+// Agar user login nahi hai toh login page par bhej do
+if (!isAuthed()) {
+    window.location.href = "index.html";
+}
+
+// ========================================
+// 🛠️ HELPER FUNCTIONS
+// ========================================
+const setMessage = (msg, ok = true) => {
+    if (!feedback) return;
+    feedback.textContent = msg;
+    feedback.style.color = ok ? '#4caf50' : '#ff4444';
+    // 3 second baad message khud gayab ho jaye
+    setTimeout(() => feedback.textContent = '', 3000);
+};
+
+const loadSuspects = () => {
+    fetch(API)
         .then(res => {
-          if (!res.ok) throw new Error('Network response was not ok');
-          return res.json();
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.json();
         })
         .then(data => {
-          suspects = data.data || data || [];
-          drawTable(suspects);
+            suspects = data.data || data || [];
+            drawTable(suspects);
         })
         .catch(err => {
-          console.error('Load error:', err);
-          setMessage('Unable to reach server at ' + API, false);
+            console.error('Load error:', err);
+            setMessage('Unable to reach server', false);
         });
-    };
+};
 
-    const getStatusClass = (statusText) => {
-      if (!statusText) return 'status-at-large';
-      const normalized = statusText.toLowerCase().replace(/ /g, '-');
-      return 'status-' + normalized;
-    };
+const getStatusClass = (statusText) => {
+    if (!statusText) return 'status-at-large';
+    const normalized = statusText.toLowerCase().replace(/ /g, '-');
+    return 'status-' + normalized;
+};
 
-    const drawTable = (data) => {
-      if (!tableBody) return;
-      if (!data || data.length === 0) {
+// ========================================
+// 📄 TABLE DRAW
+// ========================================
+const drawTable = (data) => {
+    if (!tableBody) return;
+    if (!data || data.length === 0) {
         tableBody.innerHTML = '';
-        emptyState.textContent = 'No suspects found';
+        if (emptyState) emptyState.textContent = 'No suspects found';
         return;
-      }
+    }
 
-      emptyState.textContent = '';
-      tableBody.innerHTML = data.map(s => `
+    if (emptyState) emptyState.textContent = '';
+    tableBody.innerHTML = data.map(s => `
         <tr>
           <td data-label="ID">#${s.id}</td>
           <td data-label="Name"><strong>${s.full_name || 'N/A'}</strong></td>
@@ -243,66 +259,83 @@
           </td>
         </tr>
       `).join('');
-    };
+};
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+// ========================================
+// 💾 FORM SUBMIT (With Validation Fix)
+// ========================================
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
 
-      if (!fullName.value.trim()) {
+    // 1. Full Name Check
+    if (!fullName.value.trim()) {
         setMessage('Please fill the required field: Full Name', false);
         return;
-      }
+    }
 
-      const payload = {
+    // 2. 📞 Phone Number Validation (FIX)
+    const phoneVal = phone.value.trim();
+    // Regex: Check if it's exactly 11 digits
+    const phoneRegex = /^[0-9]{11}$/; 
+    
+    if (phoneVal && !phoneRegex.test(phoneVal)) {
+        setMessage('Invalid Number! Please enter exactly 11 digits.', false);
+        return; // Yahan se code ruk jayega, aage nahi badhega
+    }
+
+    const payload = {
         full_name: fullName.value.trim(),
         alias: alias.value.trim() || null,
         age: age.value || null,
         gender: gender.value || null,
-        phone: phone.value.trim() || null,
+        phone: phoneVal || null,
         address: address.value.trim() || null,
         identification_marks: identificationMarks.value.trim() || null,
         criminal_history: criminalHistory.value.trim() || null,
         status: status.value || 'At Large'
-      };
+    };
 
-      if (suspectId.value) {
+    if (suspectId.value) {
         payload.id = parseInt(suspectId.value);
-      }
+    }
 
-      const method = suspectId.value ? 'PUT' : 'POST';
-      setMessage('Saving suspect...', true);
+    const method = suspectId.value ? 'PUT' : 'POST';
+    setMessage('Saving suspect...', true);
 
-      fetch(API, {
+    fetch(API, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
+    })
+    .then(res => res.json())
+    .then(data => {
+        // Sirf tab success message dikhao jab backend se ok aye
         setMessage(data.message || 'Suspect saved successfully', true);
         form.reset();
         suspectId.value = '';
         loadSuspects();
-      })
-      .catch(err => {
+    })
+    .catch(err => {
         console.error('Save error:', err);
         setMessage('Failed to save suspect', false);
-      });
     });
+});
 
-    // Table button actions - View, Edit, Delete
-    tableBody.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
+// ========================================
+// 🖱️ ACTIONS (View, Edit, Delete)
+// ========================================
+tableBody.addEventListener('click', (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
 
-      const { action, id } = btn.dataset;
-      const suspect = suspects.find(s => String(s.id) === String(id));
+    const { action, id } = btn.dataset;
+    const suspect = suspects.find(s => String(s.id) === String(id));
 
-      if (action === 'view' && suspect) {
-        alert(`Suspect: ${suspect.full_name}\nAlias: ${suspect.alias || 'N/A'}\nStatus: ${suspect.status}`);
-      }
+    if (action === 'view' && suspect) {
+        alert(`Suspect: ${suspect.full_name}\nAlias: ${suspect.alias || 'N/A'}\nPhone: ${suspect.phone || 'N/A'}\nStatus: ${suspect.status}`);
+    }
 
-      if (action === 'edit' && suspect) {
+    if (action === 'edit' && suspect) {
         suspectId.value = suspect.id;
         fullName.value = suspect.full_name || '';
         alias.value = suspect.alias || '';
@@ -314,34 +347,38 @@
         criminalHistory.value = suspect.criminal_history || '';
         status.value = suspect.status || 'At Large';
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    }
 
-      if (action === 'delete') {
+    if (action === 'delete') {
         if (!confirm(`Delete this suspect?`)) return;
         fetch(API, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: parseInt(id) })
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: parseInt(id) })
         })
-        .then(() => loadSuspects())
+        .then(() => {
+            setMessage('Suspect deleted', true);
+            loadSuspects();
+        })
         .catch(() => setMessage('Delete failed', false));
-      }
-    });
+    }
+});
 
-    resetBtn.addEventListener('click', () => {
-      form.reset();
-      suspectId.value = '';
-      setMessage('');
-    });
+resetBtn.addEventListener('click', () => {
+    form.reset();
+    suspectId.value = '';
+    setMessage('');
+});
 
-    searchInput.addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase().trim();
-      const filtered = suspects.filter(s => 
+searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase().trim();
+    const filtered = suspects.filter(s => 
         (s.full_name || '').toLowerCase().includes(term) ||
         (s.alias || '').toLowerCase().includes(term)
-      );
-      drawTable(filtered);
-    });
+    );
+    drawTable(filtered);
+});
 
-    loadSuspects();
+// Initial Load
+loadSuspects();
 </script>
